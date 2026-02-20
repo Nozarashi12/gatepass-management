@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Activity Logs - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <h2>Student Activity Logs</h2>
+            <div>
+                <button onclick="location.href='admin-dashboard.html'" class="btn btn-secondary">← Back to Dashboard</button>
+                <button onclick="exportLogs()" class="btn btn-primary">📊 Export Logs</button>
+            </div>
+        </div>
+
+        <div class="dashboard-header">
+            <h3>📋 Student Activity Monitoring</h3>
+            <p>View and monitor all student activities in the system</p>
+        </div>
+
+        <div class="stats-container">
+            <div class="stat-card">
+                <h4>Total Activities</h4>
+                <p id="totalActivities">0</p>
+            </div>
+            <div class="stat-card">
+                <h4>Today's Activities</h4>
+                <p id="todayActivities">0</p>
+            </div>
+            <div class="stat-card">
+                <h4>Active Students</h4>
+                <p id="activeStudents">0</p>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-controls">
+                <select id="activityFilter" class="filter-select">
+                    <option value="">All Activities</option>
+                    <option value="Login">Login</option>
+                    <option value="Logout">Logout</option>
+                    <option value="Gate Pass Request">Gate Pass Request</option>
+                </select>
+                <input type="date" id="dateFilter" class="filter-input">
+                <input type="text" id="studentFilter" placeholder="Search by student name..." class="filter-input">
+                <button onclick="filterLogs()" class="btn btn-primary">🔍 Filter</button>
+                <button onclick="clearFilters()" class="btn btn-secondary">Clear</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="requests-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Username</th>
+                        <th>Activity</th>
+                        <th>Date & Time</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="logsTableBody">
+                    <!-- Logs will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination" id="pagination">
+            <!-- Pagination will be populated here -->
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        let allLogs = [];
+        let filteredLogs = [];
+        let currentPage = 1;
+        const logsPerPage = 10;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            protectPage();
+            loadStudentLogs();
+            updateStatistics();
+        });
+
+        // Load student logs
+        function loadStudentLogs() {
+            allLogs = JSON.parse(localStorage.getItem('studentLogs') || '[]');
+            filteredLogs = [...allLogs];
+            displayLogs();
+        }
+
+        // Display logs in table
+        function displayLogs() {
+            const tbody = document.getElementById('logsTableBody');
+            const startIndex = (currentPage - 1) * logsPerPage;
+            const endIndex = startIndex + logsPerPage;
+            const logsToDisplay = filteredLogs.slice(startIndex, endIndex);
+
+            tbody.innerHTML = '';
+
+            if (logsToDisplay.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 40px;">No student activities found</td></tr>';
+                return;
+            }
+
+            logsToDisplay.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>${log.studentName}</strong></td>
+                    <td>${log.username}</td>
+                    <td><span class="status-badge status-${log.activity.toLowerCase().replace(' ', '-')}">${log.activity}</span></td>
+                    <td>${formatDateTime(log.timestamp)}</td>
+                    <td>${log.details}</td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            updatePagination();
+        }
+
+        // Update pagination
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+            const pagination = document.getElementById('pagination');
+            
+            pagination.innerHTML = '';
+
+            if (totalPages <= 1) return;
+
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = '←';
+            prevBtn.className = 'pagination-btn';
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    displayLogs();
+                }
+            };
+            pagination.appendChild(prevBtn);
+
+            // Page numbers
+            for (let i = 1; i <= totalPages; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.textContent = i;
+                pageBtn.className = `pagination-btn ${i === currentPage ? 'active' : ''}`;
+                pageBtn.onclick = () => {
+                    currentPage = i;
+                    displayLogs();
+                };
+                pagination.appendChild(pageBtn);
+            }
+
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = '→';
+            nextBtn.className = 'pagination-btn';
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    displayLogs();
+                }
+            };
+            pagination.appendChild(nextBtn);
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const totalActivities = allLogs.length;
+            const today = new Date().toDateString();
+            const todayActivities = allLogs.filter(log => 
+                new Date(log.timestamp).toDateString() === today
+            ).length;
+            
+            const uniqueStudents = new Set(allLogs.map(log => log.studentName)).size;
+
+            document.getElementById('totalActivities').textContent = totalActivities;
+            document.getElementById('todayActivities').textContent = todayActivities;
+            document.getElementById('activeStudents').textContent = uniqueStudents;
+        }
+
+        // Filter logs
+        function filterLogs() {
+            const activityFilter = document.getElementById('activityFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const studentFilter = document.getElementById('studentFilter').value.toLowerCase();
+
+            filteredLogs = allLogs.filter(log => {
+                let matches = true;
+
+                if (activityFilter && log.activity !== activityFilter) {
+                    matches = false;
+                }
+
+                if (dateFilter) {
+                    const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+                    if (logDate !== dateFilter) {
+                        matches = false;
+                    }
+                }
+
+                if (studentFilter) {
+                    if (!log.studentName.toLowerCase().includes(studentFilter) && 
+                        !log.username.toLowerCase().includes(studentFilter)) {
+                        matches = false;
+                    }
+                }
+
+                return matches;
+            });
+
+            currentPage = 1;
+            displayLogs();
+        }
+
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('activityFilter').value = '';
+            document.getElementById('dateFilter').value = '';
+            document.getElementById('studentFilter').value = '';
+            
+            filteredLogs = [...allLogs];
+            currentPage = 1;
+            displayLogs();
+        }
+
+        // Export logs to CSV
+        function exportLogs() {
+            let csv = 'Student Name,Username,Activity,Date & Time,Details\n';
+            
+            filteredLogs.forEach(log => {
+                csv += `"${log.studentName}","${log.username}","${log.activity}","${formatDateTime(log.timestamp)}","${log.details}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `student-logs-${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Check if user is logged in, otherwise redirect to login
+        if (!localStorage.getItem('currentUser')) {
+            window.location.href = '../index.html';
+        }
+    </script>
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .welcome-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .action-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .action-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .action-card i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            color: #4facfe;
+        }
+        
+        .recent-requests {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .request-item {
+            border-bottom: 1px solid #eee;
+            padding: 15px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .request-item:last-child {
+            border-bottom: none;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 50px auto;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .notification-badge {
+            background: #ff4757;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Navigation Bar -->
+        <div class="navbar">
+            <h2>User Dashboard</h2>
+            <div>
+                <span id="userWelcome">Welcome, User</span>
+                <button onclick="logout()" class="btn btn-danger" style="margin-left: 10px;">Logout</button>
+            </div>
+        </div>
+
+        <!-- Welcome Section -->
+        <div class="welcome-section">
+            <h1>Welcome to Gate Pass Management</h1>
+            <p>Submit and manage your gate passes efficiently</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <div class="action-card" onclick="openRequestModal()">
+                <div style="font-size: 48px; margin-bottom: 15px;">📝</div>
+                <h3>New Gate Pass Request</h3>
+                <p>Submit a new gate Pass request</p>
+            </div>
+            
+            <div class="action-card" onclick="viewMyRequests()">
+                <div style="font-size: 48px; margin-bottom: 15px;">📋</div>
+                <h3>My Requests</h3>
+                <p>View status of your requests</p>
+            </div>
+            
+            <div class="action-card" onclick="viewHistory()">
+                <div style="font-size: 48px; margin-bottom: 15px;">📊</div>
+                <h3>Entry/Exit History</h3>
+                <p>Check your entry and exit records</p>
+            </div>
+            
+            <div class="action-card" onclick="viewNotifications()">
+                <div style="font-size: 48px; margin-bottom: 15px;">🔔</div>
+                <h3>Notifications</h3>
+                <p>View updates and alerts
+                    <span class="notification-badge" id="notificationCount">2</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="recent-requests">
+            <h3>Recent Requests</h3>
+            <div id="recentRequestsList">
+                <!-- Requests will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Gate Pass Request Modal -->
+    <div id="requestModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeRequestModal()">&times;</button>
+            <h2>New Gate Pass Request</h2>
+            <form id="gatePassForm">
+                <div class="form-group">
+                    <label for="reason">Reason for Gate Pass</label>
+                    <select id="reason" required>
+                        <option value="">Select Reason</option>
+                        <option value="Medical Emergency">Medical Emergency</option>
+                        <option value="Family Function">Family Function</option>
+                        <option value="Personal Work">Personal Work</option>
+                        <option value="Interview">Interview</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" rows="3" placeholder="Provide detailed reason..." required></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="date">Date</label>
+                        <input type="date" id="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="time">Time</label>
+                        <input type="time" id="time" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="exitTime">Expected Exit Time</label>
+                    <input type="time" id="exitTime" required>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        // Protect page - redirect to login if not authenticated
+        if (!Auth.protectPage()) {
+            // Page will redirect automatically
+        }
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            protectPage();
+            
+            const user = Auth.getCurrentUser();
+            if (user) {
+                document.getElementById('userWelcome').textContent = `Welcome, ${user.name}`;
+                loadRecentRequests();
+                updateNotificationCount();
+            }
+            
+            // Set minimum date to today
+            document.getElementById('date').min = new Date().toISOString().split('T')[0];
+        });
+
+        // Gate pass form submission
+        document.getElementById('gatePassForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const user = Auth.getCurrentUser();
+            const formData = {
+                id: Auth.generateId(),
+                userId: user.id,
+                username: user.username,
+                name: user.name,
+                reason: document.getElementById('reason').value,
+                description: document.getElementById('description').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value,
+                exitTime: document.getElementById('exitTime').value,
+                status: 'pending',
+                requestedAt: new Date().toISOString(),
+                approvedBy: null,
+                approvedAt: null,
+                securityVerified: false
+            };
+            
+            // Save to localStorage
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            requests.push(formData);
+            localStorage.setItem('gatePassRequests', JSON.stringify(requests));
+            
+            // Show success message
+            alert('Gate pass request submitted successfully!');
+            
+            // Close modal and reset form
+            closeRequestModal();
+            this.reset();
+            
+            // Reload recent requests
+            loadRecentRequests();
+        });
+
+        function openRequestModal() {
+            document.getElementById('requestModal').style.display = 'block';
+        }
+
+        function closeRequestModal() {
+            document.getElementById('requestModal').style.display = 'none';
+        }
+
+        function loadRecentRequests() {
+            const user = Auth.getCurrentUser();
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const userRequests = requests.filter(req => req.userId === user.id)
+                                      .sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt))
+                                      .slice(0, 5);
+            
+            const container = document.getElementById('recentRequestsList');
+            
+            if (userRequests.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">No requests found</p>';
+                return;
+            }
+            
+            container.innerHTML = userRequests.map(request => `
+                <div class="request-item">
+                    <div>
+                        <strong>${request.reason}</strong>
+                        <br>
+                        <small>${request.date} at ${request.time}</small>
+                    </div>
+                    <span class="status-badge status-${request.status}">${request.status}</span>
+                </div>
+            `).join('');
+        }
+
+        function viewMyRequests() {
+            // This would navigate to a detailed requests page
+            // For now, reload the dashboard to show updated requests
+            loadRecentRequests();
+            alert('Detailed requests page would open here. For now, requests are shown below.');
+        }
+
+        function viewHistory() {
+            window.location.href = 'entry-exit-history.html';
+        }
+
+        function viewNotifications() {
+            window.location.href = 'notifications.html';
+        }
+
+        function updateNotificationCount() {
+            const user = Auth.getCurrentUser();
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const pendingRequests = requests.filter(req => req.userId === user.id && req.status === 'pending');
+            document.getElementById('notificationCount').textContent = pendingRequests.length;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('requestModal');
+            if (event.target === modal) {
+                closeRequestModal();
+            }
+        }
+    </script>
+</body>
+</html>

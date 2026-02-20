@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Check if user is logged in, otherwise redirect to login
+        if (!localStorage.getItem('currentUser')) {
+            window.location.href = '../index.html';
+        }
+    </script>
+    <style>
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4facfe;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .requests-table {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .filter-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-section select, .filter-section input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            margin: 50px auto;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .request-details {
+            line-height: 1.6;
+        }
+        
+        .request-details strong {
+            color: #333;
+        }
+        
+        .approval-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .approval-section textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Navigation Bar -->
+        <div class="navbar">
+            <h2>Admin Dashboard</h2>
+            <div>
+                <button onclick="location.href='student-logs.html'" class="btn btn-info">📋 Student Logs</button>
+                <span id="adminWelcome">Welcome, Admin</span>
+                <button onclick="logout()" class="btn btn-danger" style="margin-left: 10px;">Logout</button>
+            </div>
+        </div>
+
+        <!-- Pending Requests Alert -->
+        <div class="alert-card" id="pendingAlert" style="display: none;">
+            <h3>⚠️ Pending Requests</h3>
+            <p>You have <span id="pendingCount">0</span> pending gate pass requests requiring attention.</p>
+            <button class="btn btn-primary" onclick="scrollToPending()">Review Pending Requests</button>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <div class="stat-number" id="totalRequests">0</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%);">
+                <div class="stat-number" id="pendingRequests">0</div>
+                <div class="stat-label">Pending Requests</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #d4edda 0%, #ffc107 100%);">
+                <div class="stat-number" id="approvedToday">0</div>
+                <div class="stat-label">Approved Today</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f8d7da 0%, #ffc107 100%);">
+                <div class="stat-number" id="rejectedToday">0</div>
+                <div class="stat-label">Rejected Today</div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <label for="statusFilter">Filter by Status:</label>
+            <select id="statusFilter" onchange="filterRequests()">
+                <option value="all">All Requests</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+            </select>
+            
+            <label for="dateFilter">Filter by Date:</label>
+            <input type="date" id="dateFilter" onchange="filterRequests()">
+            
+            <button class="btn btn-primary" onclick="resetFilters()">Reset Filters</button>
+        </div>
+
+        <!-- Requests Table -->
+        <div class="requests-table">
+            <h3>Gate Pass Requests</h3>
+            <table id="requestsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Student Name</th>
+                        <th>Username</th>
+                        <th>Reason</th>
+                        <th>Date & Time</th>
+                        <th>Status</th>
+                        <th>Requested At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="requestsTableBody">
+                    <!-- Requests will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Request Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeDetailsModal()">&times;</button>
+            <h2>Request Details</h2>
+            <div id="requestDetails" class="request-details">
+                <!-- Details will be populated here -->
+            </div>
+            <div class="approval-section">
+                <h3>Take Action</h3>
+                <textarea id="adminNotes" placeholder="Add notes (optional)..."></textarea>
+                <div class="action-buttons">
+                    <button class="btn btn-success" onclick="approveRequest()">Approve</button>
+                    <button class="btn btn-danger" onclick="rejectRequest()">Reject</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        // Protect page - redirect to login if not authenticated
+        if (!Auth.protectPage()) {
+            // Page will redirect automatically
+        }
+
+        let currentRequestId = null;
+
+        // Initialize admin dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const admin = Auth.getCurrentUser();
+            if (admin) {
+                document.getElementById('adminWelcome').textContent = `Welcome, ${admin.name}`;
+                loadStatistics();
+                loadRequests();
+            }
+        });
+
+        function loadStatistics() {
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const today = new Date().toDateString();
+            
+            const totalRequests = requests.length;
+            const pendingRequests = requests.filter(req => req.status === 'pending').length;
+            const approvedToday = requests.filter(req => 
+                req.status === 'approved' && 
+                new Date(req.approvedAt).toDateString() === today
+            ).length;
+            const rejectedToday = requests.filter(req => 
+                req.status === 'rejected' && 
+                new Date(req.approvedAt).toDateString() === today
+            ).length;
+            
+            document.getElementById('totalRequests').textContent = totalRequests;
+            document.getElementById('pendingRequests').textContent = pendingRequests;
+            document.getElementById('approvedToday').textContent = approvedToday;
+            document.getElementById('rejectedToday').textContent = rejectedToday;
+            
+            // Show/hide pending alert
+            const pendingAlert = document.getElementById('pendingAlert');
+            if (pendingRequests > 0) {
+                pendingAlert.style.display = 'block';
+                document.getElementById('pendingCount').textContent = pendingRequests;
+            } else {
+                pendingAlert.style.display = 'none';
+            }
+        }
+
+        function scrollToPending() {
+            const requestsTable = document.getElementById('requestsTable');
+            const pendingRows = requestsTable.querySelectorAll('tr');
+            let firstPendingRow = null;
+            
+            // Find first pending request
+            for (let i = 0; i < pendingRows.length; i++) {
+                const statusCell = pendingRows[i].querySelector('.status-pending');
+                if (statusCell) {
+                    firstPendingRow = pendingRows[i];
+                    break;
+                }
+            }
+            
+            if (firstPendingRow) {
+                firstPendingRow.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }
+        }
+
+        function loadRequests(filter = 'all', dateFilter = '') {
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            let filteredRequests = requests;
+            
+            // Apply status filter
+            if (filter !== 'all') {
+                filteredRequests = filteredRequests.filter(req => req.status === filter);
+            }
+            
+            // Apply date filter
+            if (dateFilter) {
+                filteredRequests = filteredRequests.filter(req => req.date === dateFilter);
+            }
+            
+            // Sort by requested date (newest first)
+            filteredRequests.sort((a, b) => new Date(b.requestedAt) - new Date(a.requestedAt));
+            
+            const tbody = document.getElementById('requestsTableBody');
+            
+            if (filteredRequests.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #999;">No requests found</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = filteredRequests.map(request => `
+                <tr>
+                    <td>#${request.id}</td>
+                    <td>${request.name}</td>
+                    <td>${request.username}</td>
+                    <td>${request.reason}</td>
+                    <td>${request.date} ${request.time}</td>
+                    <td><span class="status-badge status-${request.status}">${request.status}</span></td>
+                    <td>${Auth.formatDateTime(request.requestedAt)}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-sm" onclick="viewRequestDetails(${request.id})">View</button>
+                            ${request.status === 'pending' ? `
+                                <button class="btn btn-success btn-sm" onclick="quickApprove(${request.id})">Approve</button>
+                                <button class="btn btn-danger btn-sm" onclick="quickReject(${request.id})">Reject</button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterRequests() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            loadRequests(statusFilter, dateFilter);
+        }
+
+        function resetFilters() {
+            document.getElementById('statusFilter').value = 'all';
+            document.getElementById('dateFilter').value = '';
+            loadRequests();
+        }
+
+        function viewRequestDetails(requestId) {
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const request = requests.find(req => req.id === requestId);
+            
+            if (!request) return;
+            
+            currentRequestId = requestId;
+            
+            const detailsHtml = `
+                <p><strong>Request ID:</strong> #${request.id}</p>
+                <p><strong>Student Name:</strong> ${request.name}</p>
+                <p><strong>Username:</strong> ${request.username}</p>
+                <p><strong>Reason:</strong> ${request.reason}</p>
+                ${request.description ? `<p><strong>Description:</strong> ${request.description}</p>` : ''}
+                <p><strong>Date:</strong> ${request.date}</p>
+                <p><strong>Time:</strong> ${request.time}</p>
+                <p><strong>Expected Exit Time:</strong> ${request.exitTime}</p>
+                <p><strong>Status:</strong> <span class="status-badge status-${request.status}">${request.status}</span></p>
+                <p><strong>Requested At:</strong> ${Auth.formatDateTime(request.requestedAt)}</p>
+                ${request.approvedBy ? `<p><strong>Approved By:</strong> ${request.approvedBy}</p>` : ''}
+                ${request.approvedAt ? `<p><strong>Processed At:</strong> ${Auth.formatDateTime(request.approvedAt)}</p>` : ''}
+            `;
+            
+            document.getElementById('requestDetails').innerHTML = detailsHtml;
+            document.getElementById('detailsModal').style.display = 'block';
+        }
+
+        function closeDetailsModal() {
+            document.getElementById('detailsModal').style.display = 'none';
+            currentRequestId = null;
+            document.getElementById('adminNotes').value = '';
+        }
+
+        function approveRequest() {
+            processRequest(currentRequestId, 'approved');
+        }
+
+        function rejectRequest() {
+            processRequest(currentRequestId, 'rejected');
+        }
+
+        function quickApprove(requestId) {
+            processRequest(requestId, 'approved');
+        }
+
+        function quickReject(requestId) {
+            processRequest(requestId, 'rejected');
+        }
+
+        function processRequest(requestId, action) {
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const requestIndex = requests.findIndex(req => req.id === requestId);
+            
+            if (requestIndex === -1) return;
+            
+            const admin = Auth.getCurrentUser();
+            requests[requestIndex].status = action;
+            requests[requestIndex].approvedBy = admin.username;
+            requests[requestIndex].approvedAt = new Date().toISOString();
+            
+            const adminNotes = document.getElementById('adminNotes').value;
+            if (adminNotes) {
+                requests[requestIndex].adminNotes = adminNotes;
+            }
+            
+            localStorage.setItem('gatePassRequests', JSON.stringify(requests));
+            
+            // Update statistics and pending alert
+            loadStatistics();
+            loadRequests(
+                document.getElementById('statusFilter').value,
+                document.getElementById('dateFilter').value
+            );
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('detailsModal');
+            if (event.target === modal) {
+                closeDetailsModal();
+            }
+        }
+    </script>
+</body>
+</html>

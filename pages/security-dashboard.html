@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .verification-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
+        .verification-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        
+        .biometric-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .biometric-card:hover {
+            border-color: #4facfe;
+            transform: translateY(-5px);
+        }
+        
+        .biometric-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .scan-button {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+        
+        .scan-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+        
+        .scan-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .verification-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: none;
+        }
+        
+        .verification-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .verification-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .verification-scanning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        
+        .today-approvals {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .approval-list {
+            margin-top: 20px;
+        }
+        
+        .approval-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .approval-info h4 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .approval-info p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .entry-exit-log {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .log-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+        
+        .log-table th,
+        .log-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .log-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .entry-badge {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .exit-badge {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .search-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-section input {
+            flex: 1;
+            min-width: 200px;
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .search-section input:focus {
+            outline: none;
+            border-color: #4facfe;
+        }
+        
+        .camera-preview {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            background: #000;
+            border-radius: 10px;
+            margin: 15px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .camera-preview video {
+            transform: scaleX(-1); /* Mirror the video for natural feel */
+        }
+        
+        .camera-frame {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 150px;
+            height: 150px;
+            border: 3px solid #4facfe;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        
+        .camera-hint {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+        }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Navigation Bar -->
+        <div class="navbar">
+            <h2>Security Dashboard</h2>
+            <div>
+                <span id="securityWelcome">Welcome, Security Officer</span>
+                <button onclick="logout()" class="btn btn-danger" style="margin-left: 10px;">Logout</button>
+            </div>
+        </div>
+
+        <!-- Gate Pass Verification Section -->
+        <div class="verification-section">
+            <h2>Gate Pass Verification</h2>
+            <p>Verify student identity and gate pass before allowing entry/exit</p>
+            
+            <div class="search-section">
+                <input type="text" id="searchInput" placeholder="Enter student username or gate pass ID..." onkeyup="searchStudent(event)">
+                <button class="btn btn-primary" onclick="searchStudent()">Search</button>
+            </div>
+            
+            <div id="verificationArea" style="display: none;">
+                <h3 id="studentName">Student Name</h3>
+                <p id="gatePassInfo">Gate Pass Information</p>
+                
+                <div class="verification-controls">
+                    <!-- Fingerprint Verification -->
+                    <div class="biometric-card">
+                        <div class="biometric-icon">👆</div>
+                        <h3>Fingerprint Verification</h3>
+                        <p>Scan student fingerprint for identity verification</p>
+                        <button class="scan-button" id="fingerprintBtn" onclick="startFingerprintScan()">
+                            Start Fingerprint Scan
+                        </button>
+                        <div id="fingerprintResult" class="verification-result"></div>
+                    </div>
+                    
+                    <!-- Face Recognition -->
+                    <div class="biometric-card">
+                        <div class="biometric-icon">👤</div>
+                        <h3>Face Recognition</h3>
+                        <p>Capture student face for identity verification</p>
+                        <button class="scan-button" id="faceBtn" onclick="startFaceRecognition()">
+                            Start Face Recognition
+                        </button>
+                        <div class="camera-preview" id="cameraPreview" style="display: none;">
+                            <video id="videoElement" autoplay style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;"></video>
+                            <div class="camera-frame"></div>
+                            <div class="camera-hint">Position face in frame</div>
+                            <canvas id="canvas" style="display: none;"></canvas>
+                        </div>
+                        <div id="faceResult" class="verification-result"></div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 30px;">
+                    <button class="btn btn-success btn-lg" id="allowEntryBtn" onclick="allowEntry()" disabled>
+                        ✅ Allow Entry
+                    </button>
+                    <button class="btn btn-warning btn-lg" id="allowExitBtn" onclick="allowExit()" disabled style="margin-left: 10px;">
+                        🚪 Allow Exit
+                    </button>
+                    <button class="btn btn-danger btn-lg" onclick="denyAccess()" style="margin-left: 10px;">
+                        ❌ Deny Access
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Approved Gate Passes -->
+        <div class="today-approvals">
+            <h3>Today's Approved Gate Passes</h3>
+            <div class="approval-list" id="todayApprovals">
+                <!-- Approved passes will be populated here -->
+            </div>
+        </div>
+
+        <!-- Entry/Exit Log -->
+        <div class="entry-exit-log">
+            <h3>Today's Entry/Exit Log</h3>
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>Student Name</th>
+                        <th>Username</th>
+                        <th>Type</th>
+                        <th>Verification Method</th>
+                        <th>Verified By</th>
+                    </tr>
+                </thead>
+                <tbody id="logTableBody">
+                    <!-- Log entries will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        // Protect page - redirect to login if not authenticated
+        if (!Auth.protectPage()) {
+            // Page will redirect automatically
+        }
+
+        let currentStudent = null;
+        let currentGatePass = null;
+        let fingerprintVerified = false;
+        let faceVerified = false;
+        let cameraStream = null;
+
+        // Initialize security dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            const security = Auth.getCurrentUser();
+            if (security) {
+                document.getElementById('securityWelcome').textContent = `Welcome, ${security.name}`;
+                loadTodayApprovals();
+                loadEntryExitLog();
+            }
+        });
+
+        function searchStudent(event) {
+            if (event && event.key !== 'Enter' && event.type !== 'click') return;
+            
+            const searchTerm = document.getElementById('searchInput').value.trim();
+            if (!searchTerm) return;
+            
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            
+            // Find by username or gate pass ID
+            let foundRequest = null;
+            let foundUser = null;
+            
+            if (!isNaN(searchTerm)) {
+                // Search by gate pass ID
+                foundRequest = requests.find(req => req.id == searchTerm && req.status === 'approved');
+            } else {
+                // Search by username
+                foundUser = users.find(user => user.username === searchTerm);
+                if (foundUser) {
+                    foundRequest = requests.find(req => 
+                        req.username === searchTerm && 
+                        req.status === 'approved' && 
+                        req.date === new Date().toISOString().split('T')[0]
+                    );
+                }
+            }
+            
+            if (foundRequest) {
+                const user = users.find(u => u.username === foundRequest.username);
+                displayVerificationArea(foundRequest, user);
+            } else {
+                alert('No approved gate pass found for this student/ID today');
+                hideVerificationArea();
+            }
+        }
+
+        function displayVerificationArea(request, user) {
+            currentStudent = user;
+            currentGatePass = request;
+            fingerprintVerified = false;
+            faceVerified = false;
+            
+            document.getElementById('studentName').textContent = `Student: ${user.name} (${user.username})`;
+            document.getElementById('gatePassInfo').innerHTML = `
+                <strong>Gate Pass ID:</strong> #${request.id}<br>
+                <strong>Reason:</strong> ${request.reason}<br>
+                <strong>Date:</strong> ${request.date}<br>
+                <strong>Time:</strong> ${request.time} - ${request.exitTime}
+            `;
+            
+            document.getElementById('verificationArea').style.display = 'block';
+            resetBiometricResults();
+            updateAccessButtons();
+        }
+
+        function hideVerificationArea() {
+            document.getElementById('verificationArea').style.display = 'none';
+            currentStudent = null;
+            currentGatePass = null;
+            fingerprintVerified = false;
+            faceVerified = false;
+        }
+
+        function startFingerprintScan() {
+            const btn = document.getElementById('fingerprintBtn');
+            const result = document.getElementById('fingerprintResult');
+            
+            btn.disabled = true;
+            btn.textContent = 'Scanning...';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Scanning fingerprint... Please wait';
+            result.style.display = 'block';
+            
+            // Simulate fingerprint scanning
+            setTimeout(() => {
+                const success = Math.random() > 0.2; // 80% success rate
+                
+                if (success) {
+                    fingerprintVerified = true;
+                    result.className = 'verification-result verification-success';
+                    result.textContent = '✅ Fingerprint verified successfully!';
+                } else {
+                    fingerprintVerified = false;
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Fingerprint verification failed. Please try again.';
+                }
+                
+                btn.disabled = false;
+                btn.textContent = 'Start Fingerprint Scan';
+                updateAccessButtons();
+            }, 2000);
+        }
+
+        async function startFaceRecognition() {
+            const btn = document.getElementById('faceBtn');
+            const result = document.getElementById('faceResult');
+            const preview = document.getElementById('cameraPreview');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            
+            btn.disabled = true;
+            btn.textContent = 'Opening Camera...';
+            preview.style.display = 'flex';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Initializing camera...';
+            result.style.display = 'block';
+            
+            try {
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                if (cameraStream) {
+                    video.srcObject = cameraStream;
+                    btn.textContent = '📸 Take Snapshot';
+                    result.textContent = 'Camera ready! Click "Take Snapshot" to capture face...';
+                    
+                    // Auto-capture after 2 seconds
+                    setTimeout(() => {
+                        captureSnapshot();
+                    }, 2000);
+                } else {
+                    throw new Error('Camera not available');
+                }
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                result.className = 'verification-result verification-error';
+                result.textContent = '❌ Camera not available. Please try again.';
+                btn.disabled = false;
+                btn.textContent = 'Start Face Recognition';
+            }
+        }
+
+        function captureSnapshot() {
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            const btn = document.getElementById('faceBtn');
+            const result = document.getElementById('faceResult');
+            
+            if (!video || !canvas) {
+                result.textContent = '❌ Camera not available';
+                return;
+            }
+            
+            // Capture current frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0);
+            
+            // Show captured image
+            const imgData = canvas.toDataURL('image/jpeg');
+            const img = document.createElement('img');
+            img.src = imgData;
+            img.style.width = '100%';
+            img.style.height = '200px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '10px';
+            img.style.marginTop = '10px';
+            
+            // Update preview
+            preview.innerHTML = '';
+            preview.appendChild(img);
+            
+            // Simulate face recognition
+            btn.textContent = 'Analyzing...';
+            result.textContent = 'Analyzing captured face...';
+            result.className = 'verification-result verification-scanning';
+            
+            setTimeout(() => {
+                const success = Math.random() > 0.15; // 85% success rate
+                
+                if (success) {
+                    faceVerified = true;
+                    result.className = 'verification-result verification-success';
+                    result.textContent = '✅ Face captured and verified successfully!';
+                    btn.textContent = '✅ Verification Complete';
+                } else {
+                    faceVerified = false;
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Face verification failed. Please try again.';
+                    btn.textContent = '📸 Try Again';
+                }
+                
+                updateAccessButtons();
+            }, 2000);
+        }
+
+        function fallbackToSimulation() {
+            const btn = document.getElementById('faceBtn');
+            const result = document.getElementById('faceResult');
+            const preview = document.getElementById('cameraPreview');
+            
+            preview.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Scanning...';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Camera not available. Using simulated face recognition...';
+            result.style.display = 'block';
+            
+            // Simulate face recognition
+            setTimeout(() => {
+                const success = Math.random() > 0.15; // 85% success rate
+                
+                if (success) {
+                    faceVerified = true;
+                    result.className = 'verification-result verification-success';
+                    result.textContent = '✅ Face simulated recognition successful!';
+                } else {
+                    faceVerified = false;
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Face recognition failed. Please try again.';
+                }
+                
+                btn.disabled = false;
+                btn.textContent = 'Start Face Recognition';
+                updateAccessButtons();
+            }, 2000);
+        }
+
+        function updateAccessButtons() {
+            const entryBtn = document.getElementById('allowEntryBtn');
+            const exitBtn = document.getElementById('allowExitBtn');
+            const bothVerified = fingerprintVerified && faceVerified;
+            
+            entryBtn.disabled = !bothVerified;
+            exitBtn.disabled = !bothVerified;
+        }
+
+        function resetBiometricResults() {
+            // Stop camera if running
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            document.getElementById('fingerprintResult').style.display = 'none';
+            document.getElementById('faceResult').style.display = 'none';
+            document.getElementById('cameraPreview').style.display = 'none';
+            updateAccessButtons();
+        }
+
+        // Cleanup camera when page is unloaded
+        window.addEventListener('beforeunload', function() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+            }
+        });
+
+        function allowEntry() {
+            if (!currentStudent || !currentGatePass) return;
+            
+            const security = Auth.getCurrentUser();
+            const history = JSON.parse(localStorage.getItem('entryExitHistory') || '[]');
+            
+            const entryRecord = {
+                id: Auth.generateId(),
+                requestId: currentGatePass.id,
+                username: currentStudent.username,
+                name: currentStudent.name,
+                type: 'entry',
+                timestamp: new Date().toISOString(),
+                verifiedBy: security.username,
+                biometricType: fingerprintVerified && faceVerified ? 'both' : (fingerprintVerified ? 'fingerprint' : 'face')
+            };
+            
+            history.push(entryRecord);
+            localStorage.setItem('entryExitHistory', JSON.stringify(history));
+            
+            alert(`✅ Entry allowed for ${currentStudent.name}`);
+            hideVerificationArea();
+            loadEntryExitLog();
+        }
+
+        function allowExit() {
+            if (!currentStudent || !currentGatePass) return;
+            
+            const security = Auth.getCurrentUser();
+            const history = JSON.parse(localStorage.getItem('entryExitHistory') || '[]');
+            
+            const exitRecord = {
+                id: Auth.generateId(),
+                requestId: currentGatePass.id,
+                username: currentStudent.username,
+                name: currentStudent.name,
+                type: 'exit',
+                timestamp: new Date().toISOString(),
+                verifiedBy: security.username,
+                biometricType: fingerprintVerified && faceVerified ? 'both' : (fingerprintVerified ? 'fingerprint' : 'face')
+            };
+            
+            history.push(exitRecord);
+            localStorage.setItem('entryExitHistory', JSON.stringify(history));
+            
+            alert(`✅ Exit allowed for ${currentStudent.name}`);
+            hideVerificationArea();
+            loadEntryExitLog();
+        }
+
+        function denyAccess() {
+            if (!currentStudent) return;
+            
+            const security = Auth.getCurrentUser();
+            const history = JSON.parse(localStorage.getItem('entryExitHistory') || '[]');
+            
+            const denyRecord = {
+                id: Auth.generateId(),
+                requestId: currentGatePass ? currentGatePass.id : null,
+                username: currentStudent.username,
+                name: currentStudent.name,
+                type: 'denied',
+                timestamp: new Date().toISOString(),
+                verifiedBy: security.username,
+                biometricType: 'none'
+            };
+            
+            history.push(denyRecord);
+            localStorage.setItem('entryExitHistory', JSON.stringify(history));
+            
+            alert(`❌ Access denied for ${currentStudent.name}`);
+            hideVerificationArea();
+            loadEntryExitLog();
+        }
+
+        function loadTodayApprovals() {
+            const requests = JSON.parse(localStorage.getItem('gatePassRequests') || '[]');
+            const today = new Date().toISOString().split('T')[0];
+            const todayApprovals = requests.filter(req => 
+                req.status === 'approved' && req.date === today
+            );
+            
+            const container = document.getElementById('todayApprovals');
+            
+            if (todayApprovals.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999;">No approved gate passes for today</p>';
+                return;
+            }
+            
+            container.innerHTML = todayApprovals.map(request => `
+                <div class="approval-item">
+                    <div class="approval-info">
+                        <h4>${request.name}</h4>
+                        <p><strong>Reason:</strong> ${request.reason}</p>
+                        <p><strong>Time:</strong> ${request.time} - ${request.exitTime}</p>
+                        <p><strong>Gate Pass ID:</strong> #${request.id}</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="quickVerify(${request.id})">
+                        Quick Verify
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function quickVerify(requestId) {
+            document.getElementById('searchInput').value = requestId;
+            searchStudent();
+        }
+
+        function loadEntryExitLog() {
+            const history = JSON.parse(localStorage.getItem('entryExitHistory') || '[]');
+            const today = new Date().toDateString();
+            const todayHistory = history.filter(record => 
+                new Date(record.timestamp).toDateString() === today
+            ).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            
+            const tbody = document.getElementById('logTableBody');
+            
+            if (todayHistory.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999;">No entries/exits for today</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = todayHistory.map(record => `
+                <tr>
+                    <td>${Auth.formatDateTime(record.timestamp)}</td>
+                    <td>${record.name}</td>
+                    <td>${record.username}</td>
+                    <td>
+                        <span class="${record.type}-badge">${record.type.toUpperCase()}</span>
+                    </td>
+                    <td>${record.biometricType}</td>
+                    <td>${record.verifiedBy}</td>
+                </tr>
+            `).join('');
+        }
+    </script>
+</body>
+</html>

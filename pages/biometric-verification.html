@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Verification - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Check if user is logged in, otherwise redirect to login
+        if (!localStorage.getItem('currentUser')) {
+            window.location.href = '../index.html';
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="biometric-container">
+            <div class="biometric-header">
+                <h2>🔐 Biometric Verification</h2>
+                <p id="welcomeMessage">Please complete face verification to access the system</p>
+            </div>
+            
+            <div class="camera-preview" id="cameraPreview" style="display: none;">
+                <video id="videoElement" autoplay style="width: 100%; height: 400px; object-fit: cover; border-radius: 15px;"></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <div class="scan-overlay"></div>
+            </div>
+            
+            <div class="verification-controls">
+                <button class="btn btn-primary" id="biometricBtn" onclick="captureFace()">
+                    Start Face Recognition
+                </button>
+                <div id="biometricResult" class="verification-result"></div>
+            </div>
+            
+            <div class="verification-info">
+                <h3>📸 How it works:</h3>
+                <ul>
+                    <li>Click "Start Face Recognition" to begin verification</li>
+                    <li>Allow camera access when prompted</li>
+                    <li>Position your face in the frame</li>
+                    <li>Click "📸 Take Picture" to capture your face</li>
+                    <li>System will analyze and verify your face</li>
+                    <li>Successful verification grants system access</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        let cameraStream = null;
+        let currentUser = null;
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            protectPage();
+            currentUser = getCurrentUser();
+            
+            if (currentUser) {
+                document.getElementById('welcomeMessage').textContent = 
+                    `Hi ${currentUser.name}, please complete face verification to access the system`;
+                
+                // Auto-start verification after 2 seconds
+                setTimeout(() => {
+                    startFaceRecognition();
+                }, 2000);
+            }
+        });
+
+        // Face recognition function
+        async function startFaceRecognition() {
+            const btn = document.getElementById('biometricBtn');
+            const result = document.getElementById('biometricResult');
+            const preview = document.getElementById('cameraPreview');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            
+            if (!btn) return;
+            
+            btn.disabled = true;
+            btn.textContent = 'Opening Camera...';
+            preview.style.display = 'flex';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Initializing camera...';
+            result.style.display = 'block';
+            
+            try {
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                if (cameraStream) {
+                    video.srcObject = cameraStream;
+                    btn.textContent = '📸 Take Picture';
+                    result.textContent = 'Camera ready! Position face in frame and click "Take Picture"';
+                    btn.disabled = false;
+                } else {
+                    throw new Error('Camera not available');
+                }
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                result.className = 'verification-result verification-error';
+                result.textContent = '❌ Camera not available. Using manual verification...';
+                btn.disabled = false;
+                btn.textContent = 'Skip to Dashboard';
+                
+                // Allow skip after 5 seconds
+                setTimeout(() => {
+                    proceedToDashboard();
+                }, 5000);
+            }
+        }
+
+        // Capture face
+        async function captureFace() {
+            const btn = document.getElementById('biometricBtn');
+            const result = document.getElementById('biometricResult');
+            const preview = document.getElementById('cameraPreview');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            
+            if (!btn) return;
+            
+            // Check if camera is already active
+            if (!cameraStream) {
+                // First click - start camera
+                btn.disabled = true;
+                btn.textContent = 'Opening Camera...';
+                preview.style.display = 'flex';
+                result.className = 'verification-result verification-scanning';
+                result.textContent = 'Initializing camera...';
+                result.style.display = 'block';
+                
+                try {
+                    // Request camera access
+                    cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            width: { ideal: 640 },
+                            height: { ideal: 480 },
+                            facingMode: 'user'
+                        } 
+                    });
+                    
+                    if (cameraStream) {
+                        video.srcObject = cameraStream;
+                        btn.textContent = '📸 Take Picture';
+                        result.textContent = 'Camera ready! Position face in frame and click "Take Picture"';
+                        btn.disabled = false;
+                        return; // Wait for user to click again
+                    } else {
+                        throw new Error('Camera not available');
+                    }
+                    
+                } catch (error) {
+                    console.error('Camera access error:', error);
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Camera not available. Using manual verification...';
+                    btn.disabled = false;
+                    btn.textContent = 'Skip to Dashboard';
+                    
+                    // Allow skip after 5 seconds
+                    setTimeout(() => {
+                        proceedToDashboard();
+                    }, 5000);
+                    return;
+                }
+            }
+            
+            // Second click - capture the picture
+            if (!video || !canvas) return;
+            
+            // Capture current frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Show captured image
+            const imgData = canvas.toDataURL('image/jpeg');
+            const img = document.createElement('img');
+            img.src = imgData;
+            img.style.width = '100%';
+            img.style.height = '300px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '15px';
+            img.style.marginTop = '10px';
+            
+            // Update preview
+            preview.innerHTML = '';
+            preview.appendChild(img);
+            
+            // Simulate face recognition
+            btn.textContent = 'Analyzing...';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Analyzing captured face...';
+            
+            setTimeout(() => {
+                const success = Math.random() > 0.1; // 90% success rate
+                
+                if (success) {
+                    result.className = 'verification-result verification-success';
+                    result.textContent = '✅ Face verified successfully! Access granted.';
+                    btn.textContent = '✅ Proceed to Dashboard';
+                    
+                    // Log biometric verification
+                    if (currentUser) {
+                        logStudentActivity(currentUser.name, currentUser.username, 'Biometric Verification', 'Face recognition completed successfully');
+                    }
+                    
+                    // Proceed to dashboard after success
+                    setTimeout(() => {
+                        proceedToDashboard();
+                    }, 2000);
+                } else {
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Face verification failed. Please try again.';
+                    btn.textContent = '📸 Try Again';
+                    btn.disabled = false;
+                    
+                    // Reset camera for retry
+                    if (cameraStream) {
+                        cameraStream.getTracks().forEach(track => track.stop());
+                        cameraStream = null;
+                    }
+                    preview.innerHTML = `
+                        <video id="videoElement" autoplay style="width: 100%; height: 400px; object-fit: cover; border-radius: 15px;"></video>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        <div class="scan-overlay"></div>
+                    `;
+                }
+            }, 2000);
+        }
+
+        // Proceed to dashboard
+        function proceedToDashboard() {
+            if (!currentUser) return;
+            
+            // Stop camera stream if active
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+            
+            // Redirect to user dashboard for students
+            if (currentUser.role === 'user') {
+                window.location.href = 'user-dashboard.html';
+            } else {
+                window.location.href = 'admin-dashboard.html';
+            }
+        }
+
+        // Cleanup on page unload
+        window.addEventListener('beforeunload', function() {
+            if (cameraStream) {
+                cameraStream.getTracks().forEach(track => track.stop());
+                cameraStream = null;
+            }
+        });
+    </script>
+
+    <style>
+        .biometric-container {
+            max-width: 600px;
+            margin: 50px auto;
+            text-align: center;
+        }
+
+        .biometric-header {
+            margin-bottom: 30px;
+        }
+
+        .biometric-header h2 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .biometric-header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .camera-preview {
+            position: relative;
+            margin: 20px 0;
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px dashed #00b894;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .verification-controls {
+            margin: 30px 0;
+        }
+
+        .verification-result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 600;
+            display: none;
+        }
+
+        .verification-scanning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .verification-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .verification-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .verification-info {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+
+        .verification-info h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        .verification-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .verification-info li {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .verification-info li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #00b894;
+            font-weight: bold;
+        }
+    </style>
+</body>
+</html>

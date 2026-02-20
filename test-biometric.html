@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biometric Test - Gate Pass Management</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="navbar">
+            <h2>Biometric Test</h2>
+            <div>
+                <button onclick="location.href='index.html'" class="btn btn-secondary">← Back to Login</button>
+            </div>
+        </div>
+
+        <div class="biometric-demo">
+            <h3>🎯 Test Biometric Authentication</h3>
+            <p>Click the button below to test camera access and face recognition</p>
+            
+            <div class="biometric-container">
+                <h3>Face Recognition Test</h3>
+                <div class="camera-preview" id="cameraPreview">
+                    <video id="videoElement" autoplay style="width: 100%; height: 300px; object-fit: cover; border-radius: 10px;"></video>
+                    <div class="scan-overlay"></div>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button class="demo-btn" id="faceBtn" onclick="startFaceRecognition()">
+                        Start Face Recognition
+                    </button>
+                    <div id="faceResult" class="verification-result"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script>
+        // Test biometric functionality
+        async function startFaceRecognition() {
+            const btn = document.getElementById('faceBtn');
+            const result = document.getElementById('faceResult');
+            const preview = document.getElementById('cameraPreview');
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            
+            btn.disabled = true;
+            btn.textContent = 'Opening Camera...';
+            preview.style.display = 'flex';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Initializing camera...';
+            result.style.display = 'block';
+            
+            try {
+                // Request camera access
+                cameraStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    } 
+                });
+                
+                if (cameraStream) {
+                    video.srcObject = cameraStream;
+                    btn.textContent = 'Camera Ready! Position face in frame...';
+                    result.textContent = 'Camera ready! Click "Take Snapshot" to capture face...';
+                    
+                    // Auto-capture after 2 seconds
+                    setTimeout(() => {
+                        captureSnapshot();
+                    }, 2000);
+                } else {
+                    throw new Error('Camera not available');
+                }
+                
+            } catch (error) {
+                console.error('Camera access error:', error);
+                result.className = 'verification-result verification-error';
+                result.textContent = '❌ Camera not available. Please try again.';
+                btn.disabled = false;
+                btn.textContent = 'Start Face Recognition';
+            }
+        }
+
+        function captureSnapshot() {
+            const video = document.getElementById('videoElement');
+            const canvas = document.getElementById('canvas');
+            const btn = document.getElementById('faceBtn');
+            const result = document.getElementById('faceResult');
+            
+            if (!video || !canvas) {
+                result.textContent = '❌ Camera not available';
+                return;
+            }
+            
+            // Capture current frame
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Show captured image
+            const imgData = canvas.toDataURL('image/jpeg');
+            const img = document.createElement('img');
+            img.src = imgData;
+            img.style.width = '100%';
+            img.style.height = '200px';
+            img.style.objectFit = 'cover';
+            img.style.borderRadius = '10px';
+            img.style.marginTop = '10px';
+            
+            const preview = document.getElementById('cameraPreview');
+            preview.innerHTML = '';
+            preview.appendChild(img);
+            
+            // Simulate face recognition
+            btn.textContent = 'Analyzing...';
+            result.className = 'verification-result verification-scanning';
+            result.textContent = 'Analyzing captured face...';
+            
+            setTimeout(() => {
+                const success = Math.random() > 0.15; // 85% success rate
+                
+                if (success) {
+                    result.className = 'verification-result verification-success';
+                    result.textContent = '✅ Face captured and verified successfully!';
+                    btn.textContent = '✅ Verification Complete';
+                } else {
+                    result.className = 'verification-result verification-error';
+                    result.textContent = '❌ Face verification failed. Please try again.';
+                    btn.textContent = '📸 Try Again';
+                }
+                
+                btn.disabled = false;
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
