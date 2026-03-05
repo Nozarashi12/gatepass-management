@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Gate Pass</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #f0f2f5; display: flex; min-height: 100vh; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px; background: linear-gradient(180deg, #1a1a2e 0%, #0f3460 100%);
+            color: white; display: flex; flex-direction: column;
+            position: fixed; top: 0; left: 0; height: 100vh; z-index: 100; padding-bottom: 20px;
+        }
+        .sidebar-logo { padding: 24px 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: center; }
+        .sidebar-logo .logo-icon { font-size: 32px; display: block; }
+        .sidebar-logo h2 { font-size: 13px; font-weight: 600; margin-top: 6px; opacity: 0.9; }
+        .sidebar-profile { padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px; }
+        .sidebar-avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+        .s-name { font-size: 13px; font-weight: 600; }
+        .s-role { font-size: 11px; opacity: 0.6; }
+        .nav-links { padding: 10px 0; flex: 1; }
+        .nav-link { display: flex; align-items: center; gap: 10px; padding: 11px 20px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent; background: none; border-right: none; border-top: none; border-bottom: none; width: 100%; font-family: inherit; }
+        .nav-link:hover { background: rgba(255,255,255,0.08); color: white; }
+        .nav-link.active { background: rgba(255,255,255,0.12); color: white; border-left-color: #60a5fa; }
+        .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+        .sidebar-bottom { padding: 0 14px; }
+        .btn-logout { width: 100%; padding: 10px; background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; font-family: inherit; }
+        .btn-logout:hover { background: rgba(239,68,68,0.3); color: white; }
+
+        /* ── Main ── */
+        .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        .topbar { background: white; padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0,0,0,0.08); position: sticky; top: 0; z-index: 50; }
+        .topbar h1 { font-size: 17px; font-weight: 700; color: #1a1a2e; }
+        .welcome-msg { font-size: 13px; color: #666; }
+
+        .content { padding: 24px; flex: 1; }
+        .dashboard-section { display: none; }
+
+        /* ── Stats ── */
+        .stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: white; border-radius: 12px; padding: 18px 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 14px; }
+        .stat-icon { font-size: 26px; }
+        .stat-value { font-size: 26px; font-weight: 700; color: #1a1a2e; line-height: 1; }
+        .stat-label { font-size: 12px; color: #888; margin-top: 3px; }
+
+        /* ── Filters bar ── */
+        .filters-bar {
+            background: white; border-radius: 12px; padding: 16px 20px;
+            margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap;
+            align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .filter-select, .filter-input {
+            padding: 8px 12px; border: 1px solid #e0e0e0; border-radius: 8px;
+            font-size: 13px; font-family: inherit; color: #333; background: white;
+            outline: none; cursor: pointer;
+        }
+        .filter-select:focus, .filter-input:focus { border-color: #0f3460; }
+        .filter-input { width: 160px; }
+        .filter-date-group { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #888; }
+        .btn-reset { padding: 8px 16px; background: #f0f2f5; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; color: #555; font-family: inherit; }
+        .btn-reset:hover { background: #e0e3e8; }
+        .tab-btns { display: flex; gap: 6px; margin-left: auto; }
+        .tab-btn { padding: 7px 14px; border-radius: 20px; border: 2px solid #e8ecef; background: white; font-size: 12px; font-weight: 600; cursor: pointer; color: #666; transition: all 0.2s; font-family: inherit; }
+        .tab-btn:hover, .tab-btn.active { background: #1a1a2e; color: white; border-color: #1a1a2e; }
+
+        /* ── Table card ── */
+        .table-card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; }
+        .table-card-header { padding: 16px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .table-card-header h3 { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+        .record-count { font-size: 12px; color: #888; }
+
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        thead tr { background: #f8fafc; }
+        th { padding: 12px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; border-bottom: 2px solid #e8ecef; }
+        td { padding: 0; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+        td .td-inner { padding: 12px 14px; }
+        tr:hover td { background: #fafbff; }
+
+        /* Photo cell */
+        .photo-cell { width: 80px; text-align: center; }
+        .student-photo {
+            width: 46px; height: 46px; border-radius: 50%;
+            background: #e8ecef; display: flex; align-items: center;
+            justify-content: center; font-size: 20px; margin: 0 auto 4px;
+            overflow: hidden; border: 2px solid #e0e0e0;
+        }
+        .student-photo img { width: 100%; height: 100%; object-fit: cover; }
+        .info-btn {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 10px; color: #888; background: #f0f2f5;
+            border: none; border-radius: 10px; padding: 2px 7px;
+            cursor: pointer; font-family: inherit;
+        }
+        .info-btn:hover { background: #e0e3e8; color: #555; }
+
+        /* Status */
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; white-space: nowrap; }
+        .badge-pending  { background: #fff3cd; color: #92400e; }
+        .badge-approved { background: #d1fae5; color: #065f46; }
+        .badge-rejected { background: #fee2e2; color: #991b1b; }
+        .badge-in  { background: #d1fae5; color: #065f46; }
+        .badge-out { background: #f1f5f9; color: #64748b; }
+
+        /* Action buttons */
+        .action-col { min-width: 130px; }
+        .btn-approve, .btn-reject {
+            display: block; width: 100%; padding: 6px 10px; margin-bottom: 5px;
+            border: none; border-radius: 6px; font-size: 12px; font-weight: 700;
+            cursor: pointer; font-family: inherit; transition: all 0.2s;
+        }
+        .btn-approve { background: #10b981; color: white; }
+        .btn-approve:hover { background: #059669; }
+        .btn-reject  { background: #ef4444; color: white; }
+        .btn-reject:hover  { background: #dc2626; }
+        .btn-approve:disabled, .btn-reject:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .note-input {
+            width: 100%; padding: 5px 8px; border: 1px solid #e0e0e0;
+            border-radius: 6px; font-size: 11px; font-family: inherit;
+            margin-bottom: 5px; color: #333;
+        }
+        .note-input:focus { outline: none; border-color: #0f3460; }
+
+        .student-name-cell strong { display: block; font-size: 13px; color: #1a1a2e; }
+        .student-name-cell span { font-size: 11px; color: #888; }
+
+        .time-cell { font-size: 12px; color: #444; white-space: nowrap; }
+        .time-cell .date-part { color: #888; font-size: 11px; }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: #aaa; font-size: 14px; }
+        .empty-icon { font-size: 40px; margin-bottom: 10px; }
+
+        /* Toast */
+        .toast { position: fixed; bottom: 24px; right: 24px; z-index: 9999; padding: 13px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; color: white; box-shadow: 0 4px 20px rgba(0,0,0,0.2); transform: translateY(80px); opacity: 0; transition: all 0.3s; pointer-events: none; max-width: 340px; }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast-success { background: #10b981; }
+        .toast-error   { background: #ef4444; }
+        .toast-warning { background: #f59e0b; }
+
+        /* Info modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+        .modal-overlay.open { display: flex; }
+        .modal { background: white; border-radius: 16px; padding: 28px; max-width: 400px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+        .modal-row { display: flex; gap: 8px; padding: 8px 0; border-bottom: 1px solid #f5f5f5; font-size: 13px; }
+        .modal-row label { font-weight: 600; color: #888; min-width: 110px; }
+        .modal-row span { color: #333; }
+        .modal-close { margin-top: 20px; width: 100%; padding: 10px; background: #f0f2f5; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
+        .modal-close:hover { background: #e0e3e8; }
+    </style>
+</head>
+<body>
+
+<!-- Info Modal -->
+<div class="modal-overlay" id="infoModal">
+    <div class="modal">
+        <h3>👤 Student Info</h3>
+        <div id="modalContent"></div>
+        <button class="modal-close" onclick="document.getElementById('infoModal').classList.remove('open')">Close</button>
+    </div>
+</div>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <span class="logo-icon">🎫</span>
+        <h2>Gate Pass System</h2>
+    </div>
+    <div class="sidebar-profile">
+        <div class="sidebar-avatar">👮</div>
+        <div>
+            <div class="s-name" id="adminName">Admin</div>
+            <div class="s-role">Administrator</div>
+        </div>
+    </div>
+    <nav class="nav-links">
+        <button class="nav-link active" data-section="passes">
+            <span class="nav-icon">🎫</span> Gate Pass Requests
+        </button>
+        <button class="nav-link" data-section="checkins">
+            <span class="nav-icon">📍</span> Check-In / Out Logs
+        </button>
+    </nav>
+    <div class="sidebar-bottom">
+        <button class="btn-logout" id="logoutBtn">🚪 Logout</button>
+    </div>
+</aside>
+
+<!-- Main -->
+<main class="main">
+    <div class="topbar">
+        <h1 id="sectionTitle">Gate Pass Requests</h1>
+        <span class="welcome-msg">Welcome, <strong id="welcomeName">Admin</strong> 👋</span>
+    </div>
+
+    <div class="content">
+
+        <!-- Stats (always visible) -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><span class="stat-icon">🎫</span><div><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total Requests</div></div></div>
+            <div class="stat-card"><span class="stat-icon">⏳</span><div><div class="stat-value" id="statPending">0</div><div class="stat-label">Pending</div></div></div>
+            <div class="stat-card"><span class="stat-icon">✅</span><div><div class="stat-value" id="statApproved">0</div><div class="stat-label">Approved</div></div></div>
+            <div class="stat-card"><span class="stat-icon">🟢</span><div><div class="stat-value" id="statCheckedIn">0</div><div class="stat-label">Inside Campus</div></div></div>
+        </div>
+
+        <!-- GATE PASS REQUESTS -->
+        <div class="dashboard-section" id="section-passes" style="display:block">
+            <div class="filters-bar">
+                <select class="filter-select" id="filterYear"><option value="">Year</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option></select>
+                <select class="filter-select" id="filterDept"><option value="">Department</option><option>CSE</option><option>ECE</option><option>EEE</option><option>MECH</option><option>CIVIL</option><option>IT</option></select>
+                <input class="filter-input" type="text" id="filterPassId" placeholder="Pass ID">
+                <input class="filter-input" type="text" id="filterRoll" placeholder="Roll Number">
+                <div class="filter-date-group">
+                    From <input type="datetime-local" class="filter-select" id="filterFrom">
+                </div>
+                <div class="filter-date-group">
+                    To <input type="datetime-local" class="filter-select" id="filterTo">
+                </div>
+                <button class="btn-reset" id="btnResetFilters">RESET</button>
+                <div class="tab-btns">
+                    <button class="tab-btn active" data-filter="all">All</button>
+                    <button class="tab-btn" data-filter="pending">⏳ Pending</button>
+                    <button class="tab-btn" data-filter="approved">✅ Approved</button>
+                    <button class="tab-btn" data-filter="rejected">❌ Rejected</button>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h3>Student Gate Pass Requests</h3>
+                    <span class="record-count" id="passCount">0 records</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Pass ID</th>
+                                <th>Roll Number</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Reason</th>
+                                <th>Return By</th>
+                                <th>Requested At</th>
+                                <th>Status</th>
+                                <th>Your Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="passTableBody">
+                            <tr><td colspan="10"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHECK-IN / OUT LOGS -->
+        <div class="dashboard-section" id="section-checkins">
+            <div class="filters-bar">
+                <input class="filter-input" type="text" id="ciFilterRoll" placeholder="Roll Number">
+                <input class="filter-input" type="text" id="ciFilterName" placeholder="Student Name">
+                <div class="tab-btns">
+                    <button class="tab-btn active" data-ci-filter="all">All</button>
+                    <button class="tab-btn" data-ci-filter="in">🟢 Inside</button>
+                    <button class="tab-btn" data-ci-filter="out">⚪ Left</button>
+                </div>
+            </div>
+
+            <div class="table-card">
+                <div class="table-card-header">
+                    <h3>Check-In / Check-Out Logs</h3>
+                    <span class="record-count" id="ciCount">0 records</span>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Check-In Photo</th>
+                                <th>Roll Number</th>
+                                <th>Name</th>
+                                <th>Department</th>
+                                <th>Check-In Time</th>
+                                <th>Check-Out Time</th>
+                                <th>Check-Out Reason</th>
+                                <th>Duration</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ciTableBody">
+                            <tr><td colspan="9"><div class="empty-state"><div class="empty-icon">⏳</div>Loading...</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<div class="toast" id="toastMsg"></div>
+<script src="admin-dashboard.js"></script>
+</body>
+</html>

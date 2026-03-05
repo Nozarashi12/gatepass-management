@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Verification - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .verification-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .verification-card {
+            background: white; border-radius: 20px; padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px; width: 100%; text-align: center;
+        }
+        .verification-header h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
+        .verification-header p { color: #666; margin-bottom: 30px; }
+
+        .qr-display {
+            background: #f8f9fa; border-radius: 15px; padding: 30px;
+            margin-bottom: 25px; min-height: 280px;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .qr-display img {
+            max-width: 220px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            border: 4px solid white;
+        }
+        .qr-placeholder { text-align: center; color: #999; }
+        .qr-placeholder .qr-icon { font-size: 64px; margin-bottom: 15px; }
+
+        .student-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border-radius: 12px; padding: 15px 20px;
+            margin-bottom: 20px; text-align: left;
+        }
+        .student-info h3 { margin: 0 0 8px 0; font-size: 18px; }
+        .student-info p { margin: 4px 0; font-size: 14px; opacity: 0.9; }
+
+        .qr-timer {
+            background: #fff3cd; border: 1px solid #ffc107;
+            border-radius: 8px; padding: 10px 15px;
+            margin-bottom: 20px; color: #856404; font-weight: 600;
+        }
+        .qr-timer.expired { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+
+        .verification-controls { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+
+        .status-box { padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+        .status-loading { background: linear-gradient(135deg, #e3f2fd, #2196f3); color: white; }
+        .status-success { background: linear-gradient(135deg, #e8f5e9, #4CAF50); color: white; }
+        .status-error { background: linear-gradient(135deg, #ffebee, #f44336); color: white; }
+
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3);
+            border-top: 3px solid white; border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 0 auto 12px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .instructions {
+            background: #f8f9fa; border-radius: 10px;
+            padding: 20px; text-align: left; margin-top: 10px;
+        }
+        .instructions h4 { color: #333; margin-bottom: 12px; }
+        .instructions ol { padding-left: 20px; color: #555; }
+        .instructions li { margin: 8px 0; font-size: 14px; }
+
+        .qr-timestamp { font-size: 12px; color: #999; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="verification-card">
+            <div class="verification-header">
+                <h1>📱 QR Verification</h1>
+                <p>Show this QR code to the security officer</p>
+            </div>
+
+            <!-- Student info shown once QR loads -->
+            <div class="student-info" id="studentInfo" style="display:none;">
+                <h3 id="studentName">Loading...</h3>
+                <p id="studentRole">Role: —</p>
+                <p id="studentEmail">Email: —</p>
+            </div>
+
+            <!-- QR code display area -->
+            <div class="qr-display" id="qrDisplay">
+                <div class="qr-placeholder">
+                    <div class="qr-icon">📷</div>
+                    <p>Generating your QR code...</p>
+                </div>
+            </div>
+
+            <!-- Countdown timer -->
+            <div class="qr-timer" id="qrTimer" style="display:none;">
+                ⏱️ QR expires in: <span id="timerDisplay">05:00</span>
+            </div>
+
+            <!-- Status messages -->
+            <div id="statusBox"></div>
+
+            <!-- Buttons — no onclick, attached in qr-verification.js -->
+            <div class="verification-controls" id="controls" style="display:none;">
+                <button class="btn btn-primary" id="proceedBtn">✅ Proceed to Dashboard</button>
+                <button class="btn btn-secondary" id="refreshBtn">🔄 Generate New QR</button>
+            </div>
+
+            <div class="instructions">
+                <h4>📋 Instructions:</h4>
+                <ol>
+                    <li>Show this QR code to the security officer at the gate</li>
+                    <li>The officer will scan or visually verify your QR</li>
+                    <li>QR code is valid for <strong>5 minutes</strong> only</li>
+                    <li>Click "Generate New QR" if it expires</li>
+                    <li>Click "Proceed to Dashboard" after verification</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="qr-verification.js"></script>
+</body>
+</html>
