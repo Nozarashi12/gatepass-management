@@ -129,9 +129,9 @@ router.post('/login', async (req, res) => {
             ]
         });
 
-        if (!user) {
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
+       if (!user) {
+    return res.status(401).json({ error: 'No account found with that roll number, email or Pass ID' });
+}
 
         // Check if account is locked
         if (user.lockUntil && user.lockUntil > Date.now()) {
@@ -147,11 +147,10 @@ router.post('/login', async (req, res) => {
 console.log('🔍 User found:', user ? user.email + ' | role: ' + user.role : 'NOT FOUND');
 console.log('🔍 Password match:', isMatch);
 
-        if (!isMatch) {
-            // Increment attempts in DB
-            await user.incLoginAttempts();
-            return res.status(401).json({ error: 'Invalid credentials' });
-        }
+       if (!isMatch) {
+    await user.incLoginAttempts();
+    return res.status(401).json({ error: 'Incorrect password' });
+}
 
         // ── Success — reset attempts ──
         await User.updateOne(
