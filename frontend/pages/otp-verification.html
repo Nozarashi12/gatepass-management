@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Verification - Gate Pass Management</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .verification-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .verification-card {
+            background: white; border-radius: 20px; padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 500px; width: 100%; text-align: center;
+        }
+        .verification-header h1 { color: #333; margin-bottom: 10px; font-size: 28px; }
+        .verification-header p { color: #666; margin-bottom: 30px; }
+        .otp-inputs { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; }
+        .otp-input {
+            width: 50px; height: 50px; text-align: center; font-size: 24px; font-weight: 600;
+            border: 2px solid #e0e0e0; border-radius: 10px; transition: all 0.3s ease;
+        }
+        .otp-input:focus { border-color: #4CAF50; outline: none; transform: scale(1.05); box-shadow: 0 0 0 3px rgba(76,175,80,0.1); }
+        .otp-info { background: #f8f9fa; border-radius: 10px; padding: 20px; margin-bottom: 30px; }
+        .otp-info p { margin: 8px 0; color: #666; }
+        .timer { font-weight: 600; color: #f44336; }
+        .verification-controls { display: flex; flex-direction: column; gap: 15px; margin-bottom: 30px; }
+        .verification-status { padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .status-info { background: linear-gradient(135deg, #e3f2fd 0%, #2196f3 100%); color: white; padding: 20px; border-radius: 10px; }
+        .status-success { background: linear-gradient(135deg, #e8f5e8 0%, #4CAF50 100%); color: white; padding: 20px; border-radius: 10px; }
+        .status-error { background: linear-gradient(135deg, #ffebee 0%, #f44336 100%); color: white; padding: 20px; border-radius: 10px; }
+        .status-scanning { background: linear-gradient(135deg, #fff3e0 0%, #ff9800 100%); color: white; padding: 20px; border-radius: 10px; }
+        .spinner {
+            border: 3px solid rgba(255,255,255,0.3); border-top: 3px solid white;
+            border-radius: 50%; width: 30px; height: 30px;
+            animation: spin 1s linear infinite; margin: 0 auto 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .success-icon, .error-icon, .info-icon { font-size: 48px; margin-bottom: 15px; }
+        @media (max-width: 480px) {
+            .otp-inputs { gap: 10px; }
+            .otp-input { width: 40px; height: 40px; font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="verification-container">
+        <div class="verification-card">
+            <div class="verification-header">
+                <h1>🔐 OTP Verification</h1>
+                <p>Enter the OTP sent to your registered email</p>
+            </div>
+
+            <div class="otp-section">
+                <form id="otpForm">
+                    <div class="otp-inputs">
+                        <!-- No onkeyup — handled in otp-verification.js -->
+                        <input type="text" maxlength="1" class="otp-input" id="otp1" required>
+                        <input type="text" maxlength="1" class="otp-input" id="otp2" required>
+                        <input type="text" maxlength="1" class="otp-input" id="otp3" required>
+                        <input type="text" maxlength="1" class="otp-input" id="otp4" required>
+                        <input type="text" maxlength="1" class="otp-input" id="otp5" required>
+                        <input type="text" maxlength="1" class="otp-input" id="otp6" required>
+                    </div>
+
+                    <div class="otp-info">
+                        <p>📧 OTP sent to your registered email address</p>
+                        <p class="timer" id="otpTimer">Time remaining: 05:00</p>
+                    </div>
+
+                    <div class="verification-controls">
+                        <button type="submit" class="btn btn-primary" id="verifyBtn">🔍 Verify OTP</button>
+                        <!-- No onclick — attached in otp-verification.js -->
+                        <button type="button" class="btn btn-secondary" id="resendBtn">🔄 Resend OTP</button>
+                        <button type="button" class="btn btn-outline" id="skipBtn">⏭️ Skip to Dashboard</button>
+                    </div>
+                </form>
+
+                <div class="verification-status" id="verificationStatus">
+                    <div class="status-info">
+                        <div class="info-icon">ℹ️</div>
+                        <p>Enter the 6-digit OTP code</p>
+                        <p>Check your email inbox and spam folder</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth.js"></script>
+    <script src="otp-verification.js"></script>
+</body>
+</html>
