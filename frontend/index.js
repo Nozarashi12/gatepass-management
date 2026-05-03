@@ -295,15 +295,20 @@ async function handleRegister() {
     if (!name || !email || !phone || !password || !confirm) {
         showMsg('registerMsg', 'error', 'Please fill in all fields'); return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        showMsg('registerMsg', 'error', 'Please enter a valid email'); return;
-    }
+    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)) {
+    showMsg('registerMsg', 'error', 'Only Gmail addresses are allowed');
+    return;
+}
     if (!/^\d{10}$/.test(phone)) {
         showMsg('registerMsg', 'error', 'Phone number must be 10 digits'); return;
     }
     if (password.length < 6) {
         showMsg('registerMsg', 'error', 'Password must be at least 6 characters'); return;
     }
+
+    if (!/^\d+$/.test(password)) {
+    showMsg('registerMsg', 'error', 'Password must contain only numbers'); return;
+}
     if (password !== confirm) {
         showMsg('registerMsg', 'error', 'Passwords do not match'); return;
     }

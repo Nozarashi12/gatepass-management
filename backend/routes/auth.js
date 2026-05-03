@@ -58,7 +58,47 @@ router.post('/register', async (req, res) => {
         await user.save();
 
         console.log('✅ New user registered:', name, '| Roll:', rollNumber, '| PassID:', passId);
+// Send welcome email with Pass ID
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
+    }
+});
 
+try {
+    await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Welcome to Gate Pass System — Your Pass ID',
+        html: `
+            <div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;padding:20px;">
+                <div style="background:linear-gradient(135deg,#1a1a2e,#0f3460);padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+                    <h1 style="color:white;margin:0;font-size:22px;">🎫 Gate Pass System</h1>
+                    <p style="color:rgba(255,255,255,0.7);margin:6px 0 0;">Registration Successful</p>
+                </div>
+                <div style="background:#f9f9f9;padding:24px;border:1px solid #e0e0e0;">
+                    <p style="font-size:15px;color:#333;">Hello <strong>${name}</strong>,</p>
+                    <p style="color:#555;">Your account has been created successfully. Here is your Pass ID:</p>
+                    <div style="background:white;border:2px dashed #0f3460;border-radius:10px;padding:20px;text-align:center;margin:20px 0;">
+                        <p style="margin:0;font-size:13px;color:#888;letter-spacing:1px;">YOUR PASS ID</p>
+                        <p style="margin:8px 0 0;font-size:32px;font-weight:700;color:#1a1a2e;letter-spacing:4px;">${passId}</p>
+                    </div>
+                    <p style="color:#555;font-size:13px;">You can use this Pass ID to login along with your roll number or email.</p>
+                    <p style="color:#555;font-size:13px;"><strong>Department:</strong> ${department}<br><strong>Role:</strong> ${role || 'student'}</p>
+                </div>
+                <div style="background:#1a1a2e;padding:14px;border-radius:0 0 12px 12px;text-align:center;">
+                    <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:0;">Gate Pass Management System</p>
+                </div>
+            </div>
+        `
+    });
+    console.log('✅ Welcome email sent to:', email);
+} catch (emailErr) {
+    console.log('⚠️ Email not sent (not configured):', emailErr.message);
+    // Don't fail registration if email fails
+}
         res.status(201).json({
             message: 'Registration successful',
             passId: user.passId,
