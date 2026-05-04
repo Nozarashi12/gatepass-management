@@ -379,7 +379,16 @@ async function doCheckOut(reason, lat, lng) {
         if (!res.ok) { showToast(data.error || 'Check-out failed', 'error'); updateCheckInUI(); return; }
         isCheckedIn = false;
         updateCheckInUI();
-        document.getElementById('checkInTimeDisplay').textContent = '';
+
+        // ── Auto-set exit time to current time ──
+        const now = new Date();
+        const hh  = String(now.getHours()).padStart(2, '0');
+        const mm  = String(now.getMinutes()).padStart(2, '0');
+        const exitTimeField = document.getElementById('reqTime');
+        if (exitTimeField) exitTimeField.value = hh + ':' + mm;
+
+        document.getElementById('checkInTimeDisplay').textContent =
+            'Checked out at ' + formatTime(now);
         const msg = reason === 'geofence'         ? '📍 Auto checked out — left campus boundary'
                   : reason === 'auto-end-of-day'  ? '🕔 Auto checked out — end of college hours'
                   : '✅ Checked out successfully!';
@@ -428,12 +437,29 @@ function setupSidebar() {
 
 function showPage(pageId) {
     if (pageId !== 'passview') previousPage = pageId;
-    document.querySelectorAll('.page').forEach(function (p) { p.classList.remove('active'); });
-    document.querySelectorAll('.nav-item[data-page]').forEach(function (n) { n.classList.remove('active'); });
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item[data-page]').forEach(n => n.classList.remove('active'));
+
     const page = document.getElementById('page-' + pageId);
     if (page) page.classList.add('active');
+
     const navBtn = document.querySelector('.nav-item[data-page="' + pageId + '"]');
     if (navBtn) navBtn.classList.add('active');
+
+    // 🔥 AUTO SET CURRENT TIME
+    if (pageId === 'request') {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const currentTime = `${hh}:${mm}`;
+
+        const timeInput = document.getElementById('reqTime');
+        if (timeInput) {
+            timeInput.value = currentTime;
+        }
+    }
+
     const titles = {
         home: 'Home', request: 'Request Pass', history: 'Pass History',
         passview: 'View Pass', notifications: 'Notifications', profile: 'My Profile', help: 'Help'
@@ -827,7 +853,7 @@ function updateIdleDisplay() {
     const m = Math.floor(idleSeconds / 60);
     const s = idleSeconds % 60;
     document.getElementById('idleTimerDisplay').textContent =
-        '⏱ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        '⏱️ ' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -902,7 +928,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+    const a = Math.sin(dLat/2)*2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
