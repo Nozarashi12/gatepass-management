@@ -4,7 +4,7 @@ const LANGS = {
         logoTitle: 'Gate Pass Management System',
         logoSub: 'Secure • Fast • Reliable',
         loginTab: 'Login', registerTab: 'Register',
-        lblRollLogin: 'Roll Number / Email / Pass ID',
+        lblRollLogin: 'Email / Pass ID',
         lblPassword: 'Password',
         lblFullName: 'Full Name', lblRollReg: 'Roll Number',
         lblDept: 'Department', lblYear: 'Graduation Year',
@@ -24,7 +24,7 @@ const LANGS = {
         logoTitle: 'गेट पास प्रबंधन प्रणाली',
         logoSub: 'सुरक्षित • तेज़ • विश्वसनीय',
         loginTab: 'लॉगिन', registerTab: 'पंजीकरण',
-        lblRollLogin: 'रोल नंबर / ईमेल / पास आईडी',
+        lblRollLogin: 'ईमेल / पास आईडी',
         lblPassword: 'पासवर्ड',
         lblFullName: 'पूरा नाम', lblRollReg: 'रोल नंबर',
         lblDept: 'विभाग', lblYear: 'वर्ष',
@@ -44,7 +44,7 @@ const LANGS = {
         logoTitle: 'ಗೇಟ್ ಪಾಸ್ ನಿರ್ವಹಣಾ ವ್ಯವಸ್ಥೆ',
         logoSub: 'ಸುರಕ್ಷಿತ • ವೇಗ • ವಿಶ್ವಾಸಾರ್ಹ',
         loginTab: 'ಲಾಗಿನ್', registerTab: 'ನೋಂದಣಿ',
-        lblRollLogin: 'ರೋಲ್ ನಂಬರ್ / ಇಮೇಲ್ / ಪಾಸ್ ಐಡಿ',
+        lblRollLogin: 'ಇಮೇಲ್ / ಪಾಸ್ ಐಡಿ',
         lblPassword: 'ಪಾಸ್‌ವರ್ಡ್',
         lblFullName: 'ಪೂರ್ಣ ಹೆಸರು', lblRollReg: 'ರೋಲ್ ನಂಬರ್',
         lblDept: 'ವಿಭಾಗ', lblYear: 'ವರ್ಷ',
@@ -226,8 +226,8 @@ async function handleLogin() {
                 ind.style.display = 'block';
                 ind.textContent = remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' remaining before lockout';
                 showMsg('loginMsg', 'error',
-                    currentLang === 'hi' ? 'रोल नंबर या पासवर्ड गलत है' :
-                    currentLang === 'kn' ? 'ರೋಲ್ ನಂಬರ್ ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ' :
+                    currentLang === 'hi' ? 'ईमेल या पासवर्ड गलत है' :
+                    currentLang === 'kn' ? 'ಇಮೇಲ್ ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ' :
                     data.error || 'Incorrect credentials');
             }
             return;
@@ -287,7 +287,6 @@ async function handleRegister() {
     const isAdmin  = role === 'admin';
 
     // Student-only fields
-    const roll = isAdmin ? '' : document.getElementById('regRoll').value.trim();
     const dept = isAdmin ? '' : document.getElementById('regDept').value;
     const year = isAdmin ? '' : document.getElementById('regYear').value;
 
@@ -306,18 +305,12 @@ async function handleRegister() {
         showMsg('registerMsg', 'error', 'Password must be at least 6 characters'); return;
     }
 
-    if (!/^\d+$/.test(password)) {
-    showMsg('registerMsg', 'error', 'Password must contain only numbers'); return;
-}
     if (password !== confirm) {
         showMsg('registerMsg', 'error', 'Passwords do not match'); return;
     }
 
     // Student-only validations
     if (!isAdmin) {
-        if (!roll || !/^\d{7}$/.test(roll)) {
-            showMsg('registerMsg', 'error', 'Roll number must be 7 digits'); return;
-        }
         if (!dept) {
             showMsg('registerMsg', 'error', 'Please select a department'); return;
         }
@@ -336,7 +329,6 @@ async function handleRegister() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name,
-                rollNumber: isAdmin ? 'ADMIN-' + Date.now() : roll,
                 department: isAdmin ? 'Administration' : dept,
                 year: isAdmin ? 2026 : parseInt(year),
                 email,
@@ -360,7 +352,7 @@ async function handleRegister() {
                 : '✅ Account created! Pass ID: ' + (data.passId || 'assigned') + '. You can now login.');
 
         // Reset form
-        ['regName','regRoll','regEmail','regPhone','regPassword','regConfirm']
+        ['regName','regEmail','regPhone','regPassword','regConfirm']
             .forEach(function (id) { document.getElementById(id).value = ''; });
         document.getElementById('regDept').value = '';
         document.getElementById('regYear').value = '';

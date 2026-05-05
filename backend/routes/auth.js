@@ -17,9 +17,9 @@ function isMongoConnected() {
 // ─── Register ─────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
     try {
-        const { name, rollNumber, email, password, phone, department, year, role, profilePicture } = req.body;
+        const { name, email, password, phone, department, year, role, profilePicture } = req.body;
 
-        if (!name || !rollNumber || !email || !password || !phone || !department || !year) {
+        if (!name || !email || !password || !phone || !department || !year) {
             return res.status(400).json({ error: 'All fields are required' });
         }
         if (parseInt(year) < 2026) {
@@ -30,10 +30,8 @@ router.post('/register', async (req, res) => {
         const existingEmail = await User.findOne({ email });
         if (existingEmail) return res.status(400).json({ error: 'Email already registered' });
 
-        const existingRoll = await User.findOne({ rollNumber });
-        if (existingRoll) return res.status(400).json({ error: 'Roll number already registered' });
-
-        // Auto-generate passId
+        // Auto-generate roll number and passId
+        const rollNumber = role === 'admin' ? 'ADMIN-' + Date.now() : 'STU-' + Date.now();
         const passId = 'GP' + Date.now().toString().slice(-6);
 
         const user = new User({
@@ -85,7 +83,7 @@ try {
                         <p style="margin:0;font-size:13px;color:#888;letter-spacing:1px;">YOUR PASS ID</p>
                         <p style="margin:8px 0 0;font-size:32px;font-weight:700;color:#1a1a2e;letter-spacing:4px;">${passId}</p>
                     </div>
-                    <p style="color:#555;font-size:13px;">You can use this Pass ID to login along with your roll number or email.</p>
+                    <p style="color:#555;font-size:13px;">You can use this Pass ID to login along with your email.</p>
                     <p style="color:#555;font-size:13px;"><strong>Department:</strong> ${department}<br><strong>Role:</strong> ${role || 'student'}</p>
                 </div>
                 <div style="background:#1a1a2e;padding:14px;border-radius:0 0 12px 12px;text-align:center;">
@@ -160,17 +158,16 @@ router.post('/login', async (req, res) => {
             });
         }
 
-        // ── Find user by roll, email or passId ──
+        // ── Find user by email or passId (roll number removed) ──
         const user = await User.findOne({
             $or: [
-                { rollNumber: cleanIdentifier },
                 { email: cleanIdentifier },
                 { passId: cleanIdentifier }
             ]
         });
 
        if (!user) {
-    return res.status(401).json({ error: 'No account found with that roll number, email or Pass ID' });
+    return res.status(401).json({ error: 'No account found with that email or Pass ID' });
 }
 
         // Check if account is locked
