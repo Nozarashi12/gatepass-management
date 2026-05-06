@@ -294,10 +294,23 @@ async function handleRegister() {
     if (!name || !email || !phone || !password || !confirm) {
         showMsg('registerMsg', 'error', 'Please fill in all fields'); return;
     }
-    if (!/^[a-zA-Z0-9._%+-]+@gmail\.com$/.test(email)) {
-    showMsg('registerMsg', 'error', 'Only Gmail addresses are allowed');
-    return;
-}
+    // Enhanced email validation
+    if (!/^[a-zA-Z0-9](?!.*\.\.)[a-zA-Z0-9._]{1,63}[a-zA-Z0-9]@gmail\.com$/.test(email)) {
+        showMsg('registerMsg', 'error', 'Invalid Gmail address format');
+        return;
+    }
+    
+    // Additional validation to prevent invalid patterns
+    const localPart = email.split('@')[0];
+    if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) {
+        showMsg('registerMsg', 'error', 'Invalid Gmail address format');
+        return;
+    }
+    
+    if (localPart.length < 6 || localPart.length > 30) {
+        showMsg('registerMsg', 'error', 'Gmail username must be 6-30 characters');
+        return;
+    }
     if (!/^\d{10}$/.test(phone)) {
         showMsg('registerMsg', 'error', 'Phone number must be 10 digits'); return;
     }
