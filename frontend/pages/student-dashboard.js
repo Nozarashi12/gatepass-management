@@ -211,7 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ═══════════════════════════════════════════════════════════════════════════════
 async function loadCheckInStatus() {
     try {
-        const res  = await apiFetch('/api/passes/checkin/status');
+        const res  = await apiFetch('http://localhost:5000/api/passes/checkin/status');
         if (!res.ok) return;
         const data = await res.json();
         isCheckedIn = data.isCheckedIn;
@@ -351,7 +351,7 @@ async function doCheckIn(lat, lng, photo) {
         if (lat && lng)  { body.latitude = lat; body.longitude = lng; }
         if (photo)       { body.checkInPhoto = photo; }
 
-        const res  = await apiFetch('/api/passes/checkin', 'POST', body);
+        const res  = await apiFetch('http://localhost:5000/api/passes/checkin', 'POST', body);
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'Check-in failed', 'error'); updateCheckInUI(); return; }
         isCheckedIn = true;
@@ -374,7 +374,7 @@ async function doCheckOut(reason, lat, lng) {
     try {
         const body = { reason };
         if (lat && lng) { body.latitude = lat; body.longitude = lng; }
-        const res  = await apiFetch('/api/passes/checkout', 'POST', body);
+        const res  = await apiFetch('http://localhost:5000/api/passes/checkout', 'POST', body);
         const data = await res.json();
         if (!res.ok) { showToast(data.error || 'Check-out failed', 'error'); updateCheckInUI(); return; }
         isCheckedIn = false;
@@ -629,12 +629,11 @@ function setupRequestForm() {
     document.getElementById('submitRequestBtn').addEventListener('click', async function () {
         const reason      = document.getElementById('reqReason').value;
         const destination = document.getElementById('reqDestination').value.trim();
-        const description = document.getElementById('reqDescription').value.trim();
         const date        = document.getElementById('reqDate').value;
         const time        = document.getElementById('reqTime').value;
         const returnTime  = document.getElementById('reqReturn').value;
 
-        if (!reason || !destination || !description || !date || !time || !returnTime) {
+        if (!reason || !destination || !date || !time || !returnTime) {
             showMsg('requestMsg', 'error', 'Please fill in all fields'); return;
         }
         if (time >= returnTime) {
@@ -646,7 +645,7 @@ function setupRequestForm() {
 
         try {
             // ── Save to MongoDB ──
-            const res  = await apiFetch('/api/passes/request', 'POST', {
+            const res  = await apiFetch('http://localhost:5000/api/passes/request', 'POST', {
                 reason:      reason + (destination ? ' — ' + destination : ''),
                 returnTime:  returnTime,
                 studentName: currentUser.name,
@@ -672,7 +671,7 @@ function setupRequestForm() {
                 roll: currentUser.roll,
                 dept: currentUser.dept,
                 year: currentUser.year,
-                reason, destination, description, date, time,
+                reason, destination, date, time,
                 exitTime: returnTime,
                 status: 'pending',
                 requestedAt: new Date().toISOString(),
@@ -688,7 +687,6 @@ function setupRequestForm() {
             // Reset form
             document.getElementById('reqReason').value = '';
             document.getElementById('reqDestination').value = '';
-            document.getElementById('reqDescription').value = '';
             document.getElementById('reqDate').value = today;
             document.getElementById('reqTime').value = '';
             document.getElementById('reqReturn').value = '';
@@ -718,7 +716,7 @@ function addNotification(title, message, type) {
 async function pollDBNotifications() {
     try {
         // Fetch all this student's passes fresh from MongoDB
-        const res = await apiFetch('/api/passes/my');
+        const res = await apiFetch('http://localhost:5000/api/passes/my');
         if (!res.ok) return;
         const data = await res.json();
         const dbPasses = data.passes || [];
@@ -904,15 +902,32 @@ function getUserRequests() {
 
 function apiFetch(url, method, body) {
     method = method || 'GET';
+    const token = localStorage.getItem('authToken');
+    
+    // Check if token exists
+    if (!token) {
+        console.error('No authentication token found');
+        logout(true);
+        return Promise.reject(new Error('No authentication token'));
+    }
+    
     const opts = {
         method,
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + (localStorage.getItem('authToken') || '')
+            'Authorization': 'Bearer ' + token
         }
     };
     if (body) opts.body = JSON.stringify(body);
-    return fetch(url, opts);
+    
+    return fetch(url, opts).then(response => {
+        if (response.status === 401) {
+            console.error('Authentication failed - token may be expired');
+            logout(true);
+            throw new Error('Authentication failed');
+        }
+        return response;
+    });
 }
 
 function showToast(msg, type) {
@@ -1033,7 +1048,6 @@ function applyLanguage() {
 
     setLabel('reqReason',      t.reasonLabel);
     setLabel('reqDestination', t.destLabel);
-    setLabel('reqDescription', t.descLabel);
     setLabel('reqDate',        t.dateLabel);
     setLabel('reqTime',        t.exitTimeLabel);
     setLabel('reqReturn',      t.returnTimeLabel);
@@ -1049,8 +1063,6 @@ function applyLanguage() {
     }
     const destInput = document.getElementById('reqDestination');
     if (destInput) destInput.placeholder = t.destPlaceholder;
-    const descInput = document.getElementById('reqDescription');
-    if (descInput) descInput.placeholder = t.descPlaceholder;
     const submitBtn = document.getElementById('submitRequestBtn');
     if (submitBtn) submitBtn.textContent = t.submitBtn;
 
